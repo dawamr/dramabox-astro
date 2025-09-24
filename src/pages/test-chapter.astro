@@ -1,0 +1,339 @@
+---
+// Test page for chapter.ts API functions
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter API Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+      <h1 class="text-3xl font-bold text-center mb-8">📚 Chapter API Test</h1>
+      
+      <div class="space-y-6">
+        <!-- Input Section -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">🎯 Test Chapter APIs</h2>
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="bookId" class="block text-sm font-medium text-gray-700 mb-2">
+                  Book ID (required)
+                </label>
+                <input 
+                  type="text" 
+                  id="bookId" 
+                  placeholder="Enter book ID"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label for="totalEpisodes" class="block text-sm font-medium text-gray-700 mb-2">
+                  Total Episodes (for getAllChapters)
+                </label>
+                <input 
+                  type="number" 
+                  id="totalEpisodes" 
+                  placeholder="71"
+                  value="71"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            
+            <div class="flex space-x-4">
+              <button id="testSinglePage" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Test Single Page (getChapters)
+              </button>
+              <button id="testAllChapters" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                Test All Chapters (getAllChapters)
+              </button>
+              <button id="testFromDetail" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                Get BookId from Detail
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progressSection" class="bg-white p-6 rounded-lg shadow hidden">
+          <h2 class="text-xl font-semibold mb-4">📊 Loading Progress</h2>
+          <div class="space-y-2">
+            <div class="flex justify-between">
+              <span>Progress:</span>
+              <span id="progressText">0/0</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+          <div id="progressLog" class="mt-4 bg-gray-100 p-3 rounded text-sm max-h-32 overflow-y-auto"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">📋 Results</h2>
+          <div id="loadingIndicator" class="hidden">
+            <div class="flex items-center justify-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <span class="ml-2">Loading chapters...</span>
+            </div>
+          </div>
+          <div id="resultTabs" class="hidden">
+            <div class="border-b border-gray-200 mb-4">
+              <nav class="-mb-px flex space-x-8">
+                <button id="summaryTab" class="tab-button active border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600">
+                  Summary
+                </button>
+                <button id="episodesTab" class="tab-button border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                  Episodes List
+                </button>
+                <button id="rawDataTab" class="tab-button border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                  Raw Data
+                </button>
+              </nav>
+            </div>
+            
+            <div id="summaryContent" class="tab-content">
+              <div id="summaryResult" class="space-y-2"></div>
+            </div>
+            
+            <div id="episodesContent" class="tab-content hidden">
+              <div id="episodesList" class="space-y-1 max-h-64 overflow-y-auto"></div>
+            </div>
+            
+            <div id="rawDataContent" class="tab-content hidden">
+              <pre id="rawDataResult" class="bg-gray-100 p-4 rounded text-xs overflow-auto max-h-64"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { getChapters, getAllChapters } from '/src/api/chapter.ts';
+      import { getDramaList } from '/src/api/drama.ts';
+
+      const elements = {
+        bookId: document.getElementById('bookId'),
+        totalEpisodes: document.getElementById('totalEpisodes'),
+        testSingle: document.getElementById('testSinglePage'),
+        testAll: document.getElementById('testAllChapters'),
+        testFromDetail: document.getElementById('testFromDetail'),
+        loading: document.getElementById('loadingIndicator'),
+        progressSection: document.getElementById('progressSection'),
+        progressText: document.getElementById('progressText'),
+        progressBar: document.getElementById('progressBar'),
+        progressLog: document.getElementById('progressLog'),
+        resultTabs: document.getElementById('resultTabs'),
+        summaryResult: document.getElementById('summaryResult'),
+        episodesList: document.getElementById('episodesList'),
+        rawDataResult: document.getElementById('rawDataResult')
+      };
+
+      let currentData = null;
+
+      // Tab switching
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const tabId = e.target.id.replace('Tab', '');
+          switchTab(tabId);
+        });
+      });
+
+      function switchTab(activeTab) {
+        document.querySelectorAll('.tab-button').forEach(btn => {
+          btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
+          btn.classList.add('border-transparent', 'text-gray-500');
+        });
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.add('hidden');
+        });
+
+        document.getElementById(`${activeTab}Tab`).classList.add('active', 'border-blue-500', 'text-blue-600');
+        document.getElementById(`${activeTab}Content`).classList.remove('hidden');
+      }
+
+      // Test single page
+      async function testSinglePage() {
+        const bookId = elements.bookId.value.trim();
+        if (!bookId) {
+          alert('Please enter a Book ID');
+          return;
+        }
+
+        showLoading(true);
+        try {
+          console.log('🧪 Testing getChapters (single page)...');
+          const chapters = await getChapters(bookId, true, 1);
+          displayResults(chapters, 'Single Page');
+        } catch (error) {
+          console.error('❌ getChapters failed:', error);
+          showError(error.message);
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      // Test all chapters
+      async function testAllChapters() {
+        const bookId = elements.bookId.value.trim();
+        const totalEpisodes = parseInt(elements.totalEpisodes.value) || 71;
+        
+        if (!bookId) {
+          alert('Please enter a Book ID');
+          return;
+        }
+
+        showLoading(true);
+        showProgress(true);
+        
+        try {
+          console.log(`🧪 Testing getAllChapters with ${totalEpisodes} episodes...`);
+          
+          // Monitor progress by overriding console.log temporarily
+          const originalLog = console.log;
+          let pageCount = 0;
+          const totalPages = Math.ceil(totalEpisodes / 6);
+          
+          console.log = (...args) => {
+            originalLog(...args);
+            const message = args.join(' ');
+            if (message.includes('✅ Halaman')) {
+              pageCount++;
+              updateProgress(pageCount, totalPages, message);
+            }
+            addProgressLog(message);
+          };
+
+          const chapters = await getAllChapters(bookId, totalEpisodes, true);
+          console.log = originalLog; // Restore original console.log
+          
+          displayResults(chapters, 'All Chapters');
+        } catch (error) {
+          console.error('❌ getAllChapters failed:', error);
+          showError(error.message);
+        } finally {
+          showLoading(false);
+          showProgress(false);
+        }
+      }
+
+      // Get book ID from drama list
+      async function getBookFromDetail() {
+        try {
+          const dramaList = await getDramaList(false);
+          const allBooks = dramaList.flatMap(col => col.bookList);
+          
+          if (allBooks.length > 0) {
+            const randomBook = allBooks[Math.floor(Math.random() * allBooks.length)];
+            elements.bookId.value = randomBook.bookId;
+            elements.totalEpisodes.value = randomBook.chapterCount || 71;
+            alert(`Selected: ${randomBook.bookName} (${randomBook.chapterCount} episodes)`);
+          }
+        } catch (error) {
+          console.error('Failed to get book from drama list:', error);
+          alert('Failed to get book ID');
+        }
+      }
+
+      function displayResults(chapters, testType) {
+        currentData = chapters;
+        
+        // Summary
+        elements.summaryResult.innerHTML = `
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-50 p-3 rounded">
+              <div class="text-lg font-semibold text-blue-800">${chapters.length}</div>
+              <div class="text-sm text-blue-600">Total Episodes Loaded</div>
+            </div>
+            <div class="bg-green-50 p-3 rounded">
+              <div class="text-lg font-semibold text-green-800">${testType}</div>
+              <div class="text-sm text-green-600">Test Type</div>
+            </div>
+          </div>
+          <div class="mt-4">
+            <h4 class="font-medium mb-2">Data Structure Check:</h4>
+            <ul class="text-sm space-y-1">
+              <li class="flex justify-between">
+                <span>✅ Array returned:</span>
+                <span>${Array.isArray(chapters) ? 'Yes' : 'No'}</span>
+              </li>
+              <li class="flex justify-between">
+                <span>✅ Has chapterName:</span>
+                <span>${chapters[0]?.chapterName ? 'Yes' : 'No'}</span>
+              </li>
+              <li class="flex justify-between">
+                <span>✅ Has cdnList:</span>
+                <span>${chapters[0]?.cdnList ? 'Yes' : 'No'}</span>
+              </li>
+              <li class="flex justify-between">
+                <span>✅ Has video URL:</span>
+                <span>${chapters[0]?.cdnList?.[0]?.url ? 'Yes' : 'No'}</span>
+              </li>
+            </ul>
+          </div>
+        `;
+
+        // Episodes List
+        elements.episodesList.innerHTML = chapters.map((ch, i) => `
+          <div class="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+            <span class="font-medium">${i + 1}. ${ch.chapterName || 'Unnamed Chapter'}</span>
+            <span class="text-gray-500">${ch.cdnList?.[0]?.url ? '🎥 Has URL' : '❌ No URL'}</span>
+          </div>
+        `).join('');
+
+        // Raw Data
+        elements.rawDataResult.textContent = JSON.stringify(chapters, null, 2);
+
+        elements.resultTabs.classList.remove('hidden');
+      }
+
+      function showLoading(show) {
+        elements.loading.classList.toggle('hidden', !show);
+      }
+
+      function showProgress(show) {
+        elements.progressSection.classList.toggle('hidden', !show);
+        if (!show) {
+          elements.progressText.textContent = '0/0';
+          elements.progressBar.style.width = '0%';
+          elements.progressLog.innerHTML = '';
+        }
+      }
+
+      function updateProgress(current, total, message) {
+        const percentage = Math.round((current / total) * 100);
+        elements.progressText.textContent = `${current}/${total}`;
+        elements.progressBar.style.width = `${percentage}%`;
+      }
+
+      function addProgressLog(message) {
+        const logEntry = document.createElement('div');
+        logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+        logEntry.className = 'text-xs text-gray-600';
+        elements.progressLog.appendChild(logEntry);
+        elements.progressLog.scrollTop = elements.progressLog.scrollHeight;
+      }
+
+      function showError(message) {
+        elements.summaryResult.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded p-4">
+            <div class="text-red-800 font-medium">Error:</div>
+            <div class="text-red-600 text-sm mt-1">${message}</div>
+          </div>
+        `;
+        elements.resultTabs.classList.remove('hidden');
+      }
+
+      // Event listeners
+      elements.testSingle.addEventListener('click', testSinglePage);
+      elements.testAll.addEventListener('click', testAllChapters);
+      elements.testFromDetail.addEventListener('click', getBookFromDetail);
+    </script>
+  </body>
+</html>

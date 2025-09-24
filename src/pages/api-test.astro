@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ApiTestComponent from '../components/ApiTest.tsx';
+import Welcome from '../components/Welcome';
+---
+
+<Layout title="DramaBox API Test - Astro + React + TypeScript">
+	<main>
+		<ApiTestComponent client:load />
+		 <!-- <Welcome client:load /> -->
+	</main>
+</Layout>

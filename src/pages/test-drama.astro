@@ -1,0 +1,115 @@
+---
+// Test page for drama.ts API functions
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drama API Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl font-bold text-center mb-8">🎭 Drama API Test</h1>
+      
+      <div class="space-y-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">1️⃣ Test getDramaList</h2>
+          <button id="testDramaList" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Test Drama List API
+          </button>
+          <pre id="dramaListResult" class="mt-4 bg-gray-100 p-4 rounded text-sm overflow-auto max-h-64"></pre>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">2️⃣ Test getRecommendedBooks</h2>
+          <button id="testRecommended" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            Test Recommended Books API
+          </button>
+          <pre id="recommendedResult" class="mt-4 bg-gray-100 p-4 rounded text-sm overflow-auto max-h-64"></pre>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">📊 Results Summary</h2>
+          <div id="summary" class="text-gray-600">
+            Click the buttons above to test the APIs
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { getDramaList, getRecommendedBooks } from '/src/api/drama.ts';
+
+      // Test getDramaList
+      document.getElementById('testDramaList').addEventListener('click', async () => {
+        const resultElement = document.getElementById('dramaListResult');
+        const summaryElement = document.getElementById('summary');
+        
+        resultElement.textContent = 'Loading...';
+        
+        try {
+          console.log('🧪 Testing getDramaList...');
+          const dramaList = await getDramaList(false); // disable console logs for cleaner output
+          
+          const result = {
+            success: true,
+            columnsCount: dramaList.length,
+            totalDramas: dramaList.reduce((total, col) => total + col.bookList.length, 0),
+            columns: dramaList.map(col => ({
+              title: col.title,
+              dramasCount: col.bookList.length,
+              firstFewDramas: col.bookList.slice(0, 3).map(book => ({
+                name: book.bookName,
+                id: book.bookId,
+                episodes: book.chapterCount
+              }))
+            }))
+          };
+          
+          resultElement.textContent = JSON.stringify(result, null, 2);
+          summaryElement.innerHTML = `✅ getDramaList: Found ${result.columnsCount} columns with ${result.totalDramas} total dramas`;
+          
+        } catch (error) {
+          console.error('❌ getDramaList failed:', error);
+          resultElement.textContent = `Error: ${error.message}`;
+          summaryElement.innerHTML = `❌ getDramaList failed: ${error.message}`;
+        }
+      });
+
+      // Test getRecommendedBooks
+      document.getElementById('testRecommended').addEventListener('click', async () => {
+        const resultElement = document.getElementById('recommendedResult');
+        const summaryElement = document.getElementById('summary');
+        
+        resultElement.textContent = 'Loading...';
+        
+        try {
+          console.log('🧪 Testing getRecommendedBooks...');
+          const recommendedBooks = await getRecommendedBooks(false); // disable console logs for cleaner output
+          
+          const result = {
+            success: true,
+            totalRecommended: recommendedBooks.length,
+            topRecommendations: recommendedBooks.slice(0, 5).map(book => ({
+              name: book.bookName,
+              id: book.bookId,
+              episodes: book.chapterCount,
+              views: book.playCount
+            }))
+          };
+          
+          resultElement.textContent = JSON.stringify(result, null, 2);
+          summaryElement.innerHTML = `✅ getRecommendedBooks: Found ${result.totalRecommended} recommended dramas`;
+          
+        } catch (error) {
+          console.error('❌ getRecommendedBooks failed:', error);
+          resultElement.textContent = `Error: ${error.message}`;
+          summaryElement.innerHTML = `❌ getRecommendedBooks failed: ${error.message}`;
+        }
+      });
+    </script>
+  </body>
+</html>

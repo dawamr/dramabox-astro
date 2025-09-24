@@ -1,0 +1,203 @@
+---
+// Test page for detail.ts API function
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drama Detail API Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+      <h1 class="text-3xl font-bold text-center mb-8">📖 Drama Detail API Test</h1>
+      
+      <div class="space-y-6">
+        <!-- Input Section -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">🎯 Test getDramaDetail</h2>
+          <div class="space-y-4">
+            <div>
+              <label for="bookId" class="block text-sm font-medium text-gray-700 mb-2">
+                Book ID (required)
+              </label>
+              <input 
+                type="text" 
+                id="bookId" 
+                placeholder="Enter book ID (e.g., 12345)"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div class="flex space-x-4">
+              <label class="flex items-center">
+                <input type="checkbox" id="needRecommend" class="mr-2" />
+                <span class="text-sm">Include Recommendations</span>
+              </label>
+              
+              <div>
+                <label for="fromSource" class="block text-sm font-medium text-gray-700 mb-1">
+                  Source:
+                </label>
+                <select id="fromSource" class="px-3 py-2 border border-gray-300 rounded-md">
+                  <option value="book_album">book_album</option>
+                  <option value="search">search</option>
+                  <option value="recommend">recommend</option>
+                </select>
+              </div>
+            </div>
+            
+            <button id="testDetailAPI" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
+              Test Drama Detail API
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Test Section -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">⚡ Quick Tests</h2>
+          <div class="space-x-4">
+            <button id="getRandomBook" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+              Get Random Book ID
+            </button>
+            <button id="testSampleBook" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+              Test Sample Book
+            </button>
+          </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">📊 API Response</h2>
+          <div id="loadingIndicator" class="hidden">
+            <div class="flex items-center justify-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <span class="ml-2">Loading drama details...</span>
+            </div>
+          </div>
+          <pre id="detailResult" class="bg-gray-100 p-4 rounded text-sm overflow-auto max-h-96 whitespace-pre-wrap"></pre>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">📋 Test Summary</h2>
+          <div id="summary" class="text-gray-600">
+            Enter a book ID and click "Test Drama Detail API" to begin
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { getDramaDetail } from '/src/api/detail.ts';
+      import { getDramaList } from '/src/api/drama.ts';
+
+      const elements = {
+        bookId: document.getElementById('bookId'),
+        needRecommend: document.getElementById('needRecommend'),
+        fromSource: document.getElementById('fromSource'),
+        testButton: document.getElementById('testDetailAPI'),
+        randomButton: document.getElementById('getRandomBook'),
+        sampleButton: document.getElementById('testSampleBook'),
+        loading: document.getElementById('loadingIndicator'),
+        result: document.getElementById('detailResult'),
+        summary: document.getElementById('summary')
+      };
+
+      // Test getDramaDetail function
+      async function testDramaDetail() {
+        const bookId = elements.bookId.value.trim();
+        const needRecommend = elements.needRecommend.checked;
+        const from = elements.fromSource.value;
+
+        if (!bookId) {
+          elements.summary.innerHTML = '❌ Please enter a Book ID';
+          elements.result.textContent = 'Error: Book ID is required';
+          return;
+        }
+
+        elements.loading.classList.remove('hidden');
+        elements.result.textContent = '';
+        elements.summary.textContent = 'Testing...';
+
+        try {
+          console.log(`🧪 Testing getDramaDetail with bookId: ${bookId}`);
+          
+          const startTime = performance.now();
+          const detail = await getDramaDetail(bookId, needRecommend, from, false);
+          const endTime = performance.now();
+          const duration = Math.round(endTime - startTime);
+
+          const result = {
+            success: true,
+            duration: `${duration}ms`,
+            bookId: bookId,
+            parameters: { needRecommend, from },
+            response: {
+              bookName: detail?.bookName || 'N/A',
+              bookId: detail?.bookId || 'N/A',
+              chapterCount: detail?.chapterCount || 'N/A',
+              playCount: detail?.playCount || 'N/A',
+              description: detail?.description || 'N/A',
+              tags: detail?.tags || [],
+              coverUrl: detail?.coverUrl || 'N/A',
+              hasRecommendations: detail?.recommendList ? detail.recommendList.length > 0 : false
+            },
+            fullResponse: detail
+          };
+
+          elements.result.textContent = JSON.stringify(result, null, 2);
+          elements.summary.innerHTML = `✅ getDramaDetail Success: "${detail?.bookName || 'Unknown'}" (${duration}ms)`;
+
+        } catch (error) {
+          console.error('❌ getDramaDetail failed:', error);
+          elements.result.textContent = `Error: ${error.message}\n\nFull error:\n${JSON.stringify(error, null, 2)}`;
+          elements.summary.innerHTML = `❌ getDramaDetail failed: ${error.message}`;
+        } finally {
+          elements.loading.classList.add('hidden');
+        }
+      }
+
+      // Get random book ID from drama list
+      async function getRandomBookId() {
+        elements.summary.textContent = 'Fetching random book ID...';
+        
+        try {
+          const dramaList = await getDramaList(false);
+          const allBooks = dramaList.flatMap(col => col.bookList);
+          
+          if (allBooks.length > 0) {
+            const randomBook = allBooks[Math.floor(Math.random() * allBooks.length)];
+            elements.bookId.value = randomBook.bookId;
+            elements.summary.innerHTML = `✅ Random book selected: "${randomBook.bookName}" (ID: ${randomBook.bookId})`;
+          } else {
+            elements.summary.innerHTML = '❌ No books found in drama list';
+          }
+        } catch (error) {
+          elements.summary.innerHTML = `❌ Failed to get random book: ${error.message}`;
+        }
+      }
+
+      // Test with a sample book ID
+      async function testSampleBook() {
+        elements.bookId.value = '123456'; // Sample book ID
+        elements.needRecommend.checked = true;
+        await testDramaDetail();
+      }
+
+      // Event listeners
+      elements.testButton.addEventListener('click', testDramaDetail);
+      elements.randomButton.addEventListener('click', getRandomBookId);
+      elements.sampleButton.addEventListener('click', testSampleBook);
+
+      // Allow Enter key to trigger test
+      elements.bookId.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          testDramaDetail();
+        }
+      });
+    </script>
+  </body>
+</html>
