@@ -139,6 +139,7 @@ export default function MovieDetail({ drama, onBack }: MovieDetailProps) {
   };
 
   const handleChapterSelect = (chapter: Chapter) => {
+    console.log('Chapter selected:', chapter.chapterIndex);
     setSelectedChapter(chapter);
     const newVideoUrl = getBestVideoUrl(chapter);
     if (newVideoUrl) {
