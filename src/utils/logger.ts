@@ -47,7 +47,7 @@ class Logger {
     
     this.config = {
       logLevel: LogLevel.INFO,
-      enableFileLogging: true,
+      enableFileLogging: this.isServer, // Only enable file logging in server environment
       enableConsoleLogging: true,
       logDirectory: './logs',
       maxLogFiles: 10,
@@ -57,7 +57,12 @@ class Logger {
       ...config
     };
 
-    // Auto-flush buffer every 5 seconds
+    // Ensure file logging is disabled in browser environment
+    if (!this.isServer) {
+      this.config.enableFileLogging = false;
+    }
+
+    // Auto-flush buffer every 5 seconds (only in server environment)
     if (this.isServer && this.config.enableFileLogging) {
       this.flushTimeout = setInterval(() => this.flushLogs(), 5000);
     }
@@ -126,79 +131,104 @@ class Logger {
   }
 
   private async writeToFile(entry: LogEntry): Promise<void> {
-    if (!this.isServer) return;
-
+    // Skip file logging in browser environment completely
+    if (typeof window !== 'undefined') return;
+    
     try {
-      const fs = await import('fs');
-      const path = await import('path');
-      
-      // Create logs directory if it doesn't exist
-      if (!fs.existsSync(this.config.logDirectory)) {
-        fs.mkdirSync(this.config.logDirectory, { recursive: true });
-      }
-
-      const date = new Date().toISOString().split('T')[0];
-      const fileName = `dramabox-${date}.log`;
-      const filePath = path.join(this.config.logDirectory, fileName);
-      
-      const logMessage = this.formatLogMessage(entry) + '\n';
-      
-      // Check file size and rotate if necessary
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        const fileSizeInMB = stats.size / (1024 * 1024);
-        
-        if (fileSizeInMB > this.config.maxFileSize) {
-          await this.rotateLogFile(filePath);
-        }
-      }
-      
-      fs.appendFileSync(filePath, logMessage, 'utf8');
+      // Only use Node.js modules in actual server environment
+      await this.writeToFileServer(entry);
     } catch (error) {
+      // Only log to console in case of file logging errors
       console.error('Failed to write to log file:', error);
     }
   }
 
+  // Separate method for server-side file operations to avoid Vite bundling issues
+  private async writeToFileServer(entry: LogEntry): Promise<void> {
+    // This method should only be called in server environment
+    const fs = eval('require')('fs');
+    const path = eval('require')('path');
+    
+    // Create logs directory if it doesn't exist
+    if (!fs.existsSync(this.config.logDirectory)) {
+      fs.mkdirSync(this.config.logDirectory, { recursive: true });
+    }
+
+    const date = new Date().toISOString().split('T')[0];
+    const fileName = `dramabox-${date}.log`;
+    const filePath = path.join(this.config.logDirectory, fileName);
+    
+    const logMessage = this.formatLogMessage(entry) + '\n';
+    
+    // Check file size and rotate if necessary
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      const fileSizeInMB = stats.size / (1024 * 1024);
+      
+      if (fileSizeInMB > this.config.maxFileSize) {
+        await this.rotateLogFileServer(filePath);
+      }
+    }
+    
+    fs.appendFileSync(filePath, logMessage, 'utf8');
+  }
+
   private async rotateLogFile(currentFile: string): Promise<void> {
-    const fs = await import('fs');
-    const path = await import('path');
+    // Skip in browser environment
+    if (typeof window !== 'undefined') return;
     
     try {
-      const dir = path.dirname(currentFile);
-      const baseName = path.basename(currentFile, '.log');
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const rotatedFile = path.join(dir, `${baseName}-${timestamp}.log`);
-      
-      fs.renameSync(currentFile, rotatedFile);
-      
-      // Clean up old log files
-      await this.cleanupOldLogs(dir);
+      await this.rotateLogFileServer(currentFile);
     } catch (error) {
       console.error('Failed to rotate log file:', error);
     }
   }
 
+  // Server-side log rotation
+  private async rotateLogFileServer(currentFile: string): Promise<void> {
+    const fs = eval('require')('fs');
+    const path = eval('require')('path');
+    
+    const dir = path.dirname(currentFile);
+    const baseName = path.basename(currentFile, '.log');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const rotatedFile = path.join(dir, `${baseName}-${timestamp}.log`);
+    
+    fs.renameSync(currentFile, rotatedFile);
+    
+    // Clean up old log files
+    await this.cleanupOldLogsServer(dir);
+  }
+
   private async cleanupOldLogs(directory: string): Promise<void> {
-    const fs = await import('fs');
-    const path = await import('path');
+    // Skip in browser environment
+    if (typeof window !== 'undefined') return;
     
     try {
-      const files = fs.readdirSync(directory)
-        .filter(file => file.endsWith('.log'))
-        .map(file => ({
-          name: file,
-          path: path.join(directory, file),
-          stats: fs.statSync(path.join(directory, file))
-        }))
-        .sort((a, b) => b.stats.mtime.getTime() - a.stats.mtime.getTime());
-
-      // Keep only the latest maxLogFiles
-      const filesToDelete = files.slice(this.config.maxLogFiles);
-      for (const file of filesToDelete) {
-        fs.unlinkSync(file.path);
-      }
+      await this.cleanupOldLogsServer(directory);
     } catch (error) {
       console.error('Failed to cleanup old logs:', error);
+    }
+  }
+
+  // Server-side log cleanup
+  private async cleanupOldLogsServer(directory: string): Promise<void> {
+    const fs = eval('require')('fs');
+    const path = eval('require')('path');
+    
+    const files = fs.readdirSync(directory)
+      .filter((file: string) => file.endsWith('.log'))
+      .map((file: string) => ({
+        name: file,
+        path: path.join(directory, file),
+        stats: fs.statSync(path.join(directory, file))
+      }))
+      .sort((a: any, b: any) => b.stats.mtime.getTime() - a.stats.mtime.getTime());
+
+    // Keep only the latest maxLogFiles
+    const filesToDelete = files.slice(this.config.maxLogFiles);
+    for (const file of filesToDelete) {
+      fs.unlinkSync(file.path);
     }
   }
 
@@ -418,7 +448,7 @@ class ChildLogger {
 // Create and export a default logger instance
 const defaultLogger = new Logger({
   logLevel: LogLevel.INFO,
-  enableFileLogging: true,
+  enableFileLogging: typeof window === 'undefined', // Only enable in server environment
   enableConsoleLogging: true,
   logDirectory: './logs',
   maxLogFiles: 10,
