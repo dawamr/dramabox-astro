@@ -1,12 +1,10 @@
 import axios, { type AxiosResponse } from "axios";
 import type { TokenCache, TokenResponse, ApiHeaders } from "../types/api.js";
-import defaultLogger from "../utils/logger.js";
 import defaultApiLogger from "../utils/apiLogger.js";
 
 const CACHE_KEY = "dramabox_token_cache";
 
 // Create a logger for this module
-const logger = defaultLogger.child('DramaBoxHelper');
 const apiLogger = defaultApiLogger.forEndpoint('/api/token');
 
 /**
@@ -16,13 +14,13 @@ export const getToken = async (): Promise<TokenCache> => {
   const startTime = Date.now();
   
   try {
-    logger.info('Starting token retrieval process');
+    console.info('Starting token retrieval process');
     
     // 1. cek apakah ada file cache (only in browser)
     const cache = await readCache();
     if (cache) {
       const expiryDate = new Date(cache.timestamp + 3600_000);
-      logger.info('Using cached token', {
+      console.info('Using cached token', {
         tokenLength: cache.token.length,
         deviceId: cache.deviceId,
         expiresAt: expiryDate.toISOString(),
@@ -39,7 +37,7 @@ export const getToken = async (): Promise<TokenCache> => {
       return cache;
     }
 
-    logger.info('No valid cached token found, fetching new token from API');
+    console.info('No valid cached token found, fetching new token from API');
     
     // 2. kalau tidak ada atau expired → request baru
     const tokenUrl = typeof window !== 'undefined' ? '/api/token' : 'https://dramabox-api.vercel.app/api/token';
@@ -51,12 +49,12 @@ export const getToken = async (): Promise<TokenCache> => {
       timestamp: Date.now()
     });
     
-    logger.debug('Making token API request', { url: tokenUrl, requestId });
+    console.debug('Making token API request', { url: tokenUrl, requestId });
     
     const res: AxiosResponse<TokenResponse> = await axios.get(tokenUrl);
     const requestDuration = Date.now() - startTime;
 
-    logger.info('Token API response received', {
+    console.info('Token API response received', {
       status: res.status,
       duration: `${requestDuration}ms`,
       responseDataKeys: Object.keys(res.data || {}),
@@ -75,7 +73,7 @@ export const getToken = async (): Promise<TokenCache> => {
         }
       };
       
-      logger.error('Invalid token response structure', errorData);
+      console.error('Invalid token response structure', errorData);
       apiLogger.logResponse(requestId, res.status, errorData, requestDuration);
       
       throw new Error("Token atau Device ID tidak ditemukan dari API");
@@ -87,7 +85,7 @@ export const getToken = async (): Promise<TokenCache> => {
       timestamp: Date.now(),
     };
 
-    logger.info('New token generated successfully', {
+    console.info('New token generated successfully', {
       tokenLength: tokenData.token.length,
       deviceId: tokenData.deviceId,
       timestamp: new Date(tokenData.timestamp).toISOString(),
@@ -105,7 +103,7 @@ export const getToken = async (): Promise<TokenCache> => {
 
     // Log total operation performance
     const totalDuration = Date.now() - startTime;
-    logger.performance('token_retrieval', totalDuration, {
+    console.info('token_retrieval', totalDuration, {
       source: 'api',
       cached: false
     });
@@ -115,14 +113,14 @@ export const getToken = async (): Promise<TokenCache> => {
   } catch (error: any) {
     const totalDuration = Date.now() - startTime;
     
-    logger.error('Failed to retrieve token', {
+    console.error('Failed to retrieve token', {
       error: error.message,
       duration: `${totalDuration}ms`,
       url: typeof window !== 'undefined' ? '/api/token' : 'https://dramabox-api.vercel.app/api/token'
     });
     
     if (error.response) {
-      logger.error('Token API error details', {
+      console.error('Token API error details', {
         status: error.response.status,
         statusText: error.response.statusText,
         responseData: error.response.data,
@@ -149,11 +147,11 @@ export const getHeaders = async (): Promise<ApiHeaders> => {
   const startTime = Date.now();
   
   try {
-    logger.debug('Starting header generation process');
+    console.debug('Starting header generation process');
     
     const { token, deviceId } = await getToken();
     
-    logger.debug('Generating headers', {
+    console.debug('Generating headers', {
       tokenLength: token.length,
       deviceId: deviceId,
       environment: typeof window !== 'undefined' ? 'browser' : 'server'
@@ -164,14 +162,14 @@ export const getHeaders = async (): Promise<ApiHeaders> => {
       generateServerHeaders(token, deviceId);
 
     const duration = Date.now() - startTime;
-    logger.info('Headers generated successfully', {
+    console.info('Headers generated successfully', {
       headerCount: Object.keys(headers).length,
       duration: `${duration}ms`,
       environment: typeof window !== 'undefined' ? 'browser' : 'server'
     });
 
     // Log performance
-    logger.performance('header_generation', duration, {
+    console.info('header_generation', duration, {
       headerCount: Object.keys(headers).length,
       environment: typeof window !== 'undefined' ? 'browser' : 'server'
     });
@@ -180,7 +178,7 @@ export const getHeaders = async (): Promise<ApiHeaders> => {
     
   } catch (error: any) {
     const duration = Date.now() - startTime;
-    logger.error('Failed to generate headers', {
+    console.error('Failed to generate headers', {
       error: error.message,
       duration: `${duration}ms`
     });
@@ -192,7 +190,7 @@ export const getHeaders = async (): Promise<ApiHeaders> => {
  * Generate browser-safe headers
  */
 function generateBrowserHeaders(token: string, deviceId: string): ApiHeaders {
-  logger.debug('Generating browser-safe headers');
+  console.debug('Generating browser-safe headers');
   
   return {
     "Tn": `Bearer ${token}`,
@@ -222,7 +220,7 @@ function generateBrowserHeaders(token: string, deviceId: string): ApiHeaders {
  * Generate server-side headers (includes all headers)
  */
 function generateServerHeaders(token: string, deviceId: string): ApiHeaders {
-  logger.debug('Generating server-side headers (full set)');
+  console.debug('Generating server-side headers (full set)');
   
   return {
     "Host": "sapi.dramaboxdb.com",
@@ -259,15 +257,15 @@ function generateServerHeaders(token: string, deviceId: string): ApiHeaders {
 async function readCache(): Promise<TokenCache | null> {
   try {
     if (typeof window === 'undefined') {
-      logger.debug('Skipping cache read during SSR');
+      console.debug('Skipping cache read during SSR');
       return null;
     }
     
-    logger.debug('Reading token cache from localStorage');
+    console.debug('Reading token cache from localStorage');
     
     const data = localStorage.getItem(CACHE_KEY);
     if (!data) {
-      logger.debug('No cache data found in localStorage');
+      console.debug('No cache data found in localStorage');
       return null;
     }
     
@@ -276,7 +274,7 @@ async function readCache(): Promise<TokenCache | null> {
     const age = now - parsed.timestamp;
     const maxAge = 3600_000; // 1 hour
 
-    logger.debug('Cache data found', {
+    console.debug('Cache data found', {
       age: `${Math.round(age / 1000)} seconds`,
       maxAge: `${Math.round(maxAge / 1000)} seconds`,
       isValid: age < maxAge,
@@ -285,7 +283,7 @@ async function readCache(): Promise<TokenCache | null> {
 
     // cek apakah masih valid (1 jam = 3600 detik)
     if (age < maxAge) {
-      logger.info('Using valid cached token', {
+      console.info('Using valid cached token', {
         age: `${Math.round(age / 1000)} seconds`,
         remainingTime: `${Math.round((maxAge - age) / 1000)} seconds`
       });
@@ -299,7 +297,7 @@ async function readCache(): Promise<TokenCache | null> {
       return parsed;
     }
 
-    logger.info('Cache expired, removing old data', {
+    console.info('Cache expired, removing old data', {
       age: `${Math.round(age / 1000)} seconds`,
       maxAge: `${Math.round(maxAge / 1000)} seconds`
     });
@@ -315,7 +313,7 @@ async function readCache(): Promise<TokenCache | null> {
     return null; // expired
     
   } catch (error: any) {
-    logger.error('Failed to read cache', {
+    console.error('Failed to read cache', {
       error: error.message,
       cacheKey: CACHE_KEY
     });
@@ -330,7 +328,7 @@ async function readCache(): Promise<TokenCache | null> {
     try {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(CACHE_KEY);
-        logger.info('Cleared corrupted cache data');
+        console.info('Cleared corrupted cache data');
       }
     } catch {
       // Ignore cleanup errors
@@ -346,18 +344,18 @@ async function readCache(): Promise<TokenCache | null> {
 async function saveCache(data: TokenCache): Promise<void> {
   try {
     if (typeof window === 'undefined') {
-      logger.debug('Skipping cache save during SSR');
+      console.debug('Skipping cache save during SSR');
       return;
     }
     
-    logger.debug('Saving token to localStorage cache', {
+    console.debug('Saving token to localStorage cache', {
       deviceId: data.deviceId,
       timestamp: new Date(data.timestamp).toISOString()
     });
     
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     
-    logger.info('Token cache saved successfully', {
+    console.info('Token cache saved successfully', {
       cacheKey: CACHE_KEY,
       deviceId: data.deviceId
     });
@@ -369,7 +367,7 @@ async function saveCache(data: TokenCache): Promise<void> {
     });
     
   } catch (error: any) {
-    logger.error('Failed to save cache', {
+    console.error('Failed to save cache', {
       error: error.message,
       cacheKey: CACHE_KEY,
       deviceId: data.deviceId

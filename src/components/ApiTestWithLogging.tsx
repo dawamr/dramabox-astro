@@ -14,7 +14,6 @@ import {
 import type { DramaBook, SearchResult, DramaDetail, Chapter } from '../types/api.js';
 
 // Import logging utilities
-import defaultLogger from '../utils/logger.js';
 import defaultApiLogger from '../utils/apiLogger.js';
 
 interface ApiTestProps {
@@ -22,8 +21,7 @@ interface ApiTestProps {
 }
 
 export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (With Logging)" }: ApiTestProps) {
-  // Create component-specific logger
-  const logger = defaultLogger.child('ApiTestComponent');
+  // Using console logging since console.ts is deprecated
   
   // Main data states
   const [dramaList, setDramaList] = useState<any[]>([]);
@@ -54,25 +52,25 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
   useEffect(() => {
     const startTime = Date.now();
     
-    logger.info('ApiTestComponent mounted', {
+    console.info('ApiTestComponent mounted', {
       title,
       timestamp: new Date().toISOString()
     });
 
     // Log user action
-    defaultLogger.userAction('api_test_component_viewed', {
+    console.info('api_test_component_viewed', {
       title,
       timestamp: new Date().toISOString()
     });
 
     return () => {
       const duration = Date.now() - startTime;
-      logger.info('ApiTestComponent unmounted', {
+      console.info('ApiTestComponent unmounted', {
         duration: `${duration}ms`,
         timestamp: new Date().toISOString()
       });
       
-      defaultLogger.performance('component_lifecycle', duration, {
+      console.info('component_lifecycle', duration, {
         component: 'ApiTestComponent',
         action: 'mount_to_unmount'
       });
@@ -83,7 +81,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
   const setLoadingState = (key: string, state: boolean) => {
     setLoading(prev => ({ ...prev, [key]: state }));
     
-    logger.debug('Loading state changed', {
+    console.debug('Loading state changed', {
       operation: key,
       loading: state,
       timestamp: new Date().toISOString()
@@ -97,7 +95,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
 
   const showSuccess = (message: string, data?: any) => {
     setSuccess(message);
-    logger.info('Operation succeeded', {
+    console.info('Operation succeeded', {
       message,
       data: data ? JSON.stringify(data).substring(0, 200) : undefined
     });
@@ -105,7 +103,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
 
   const showError = (message: string, errorDetails?: any) => {
     setError(message);
-    logger.error('Operation failed', {
+    console.error('Operation failed', {
       message,
       error: errorDetails
     });
@@ -120,13 +118,13 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
       setLoadingState('token', true);
       clearMessages();
       
-      logger.info('Starting token retrieval test', {
+      console.info('Starting token retrieval test', {
         operation,
         timestamp: new Date().toISOString()
       });
 
       // Log user action
-      defaultLogger.userAction('test_get_token', {
+      console.info('test_get_token', {
         source: 'api_test_component',
         timestamp: new Date().toISOString()
       });
@@ -142,7 +140,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
       });
 
       // Log performance
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: true,
         tokenLength: token.token?.length
       });
@@ -155,7 +153,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         stack: err.stack
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: false,
         error: err.message
       });
@@ -173,9 +171,9 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
       setLoadingState('headers', true);
       clearMessages();
       
-      logger.info('Starting headers generation test', { operation });
+      console.info('Starting headers generation test', { operation });
 
-      defaultLogger.userAction('test_get_headers', {
+      console.info('test_get_headers', {
         source: 'api_test_component',
         timestamp: new Date().toISOString()
       });
@@ -189,7 +187,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         headerCount: Object.keys(headerData).length
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: true,
         headerCount: Object.keys(headerData).length
       });
@@ -201,7 +199,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         error: err.message
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: false,
         error: err.message
       });
@@ -219,9 +217,9 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
       setLoadingState('dramaList', true);
       clearMessages();
       
-      logger.info('Starting drama list retrieval test', { operation });
+      console.info('Starting drama list retrieval test', { operation });
 
-      defaultLogger.userAction('test_get_drama_list', {
+      console.info('test_get_drama_list', {
         source: 'api_test_component',
         timestamp: new Date().toISOString()
       });
@@ -236,7 +234,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         totalDramas: list.reduce((acc, col) => acc + (col.bookList?.length || 0), 0)
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: true,
         columnCount: list.length,
         totalDramas: list.reduce((acc: number, col: any) => acc + (col.bookList?.length || 0), 0)
@@ -249,7 +247,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         error: err.message
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: false,
         error: err.message
       });
@@ -267,9 +265,9 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
       setLoadingState('recommended', true);
       clearMessages();
       
-      logger.info('Starting recommended books retrieval test', { operation });
+      console.info('Starting recommended books retrieval test', { operation });
 
-      defaultLogger.userAction('test_get_recommended_books', {
+      console.info('test_get_recommended_books', {
         source: 'api_test_component',
         timestamp: new Date().toISOString()
       });
@@ -285,7 +283,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         displayed: limitedBooks.length
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: true,
         totalFound: books.length,
         displayed: limitedBooks.length
@@ -298,7 +296,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         error: err.message
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: false,
         error: err.message
       });
@@ -316,12 +314,12 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
       setLoadingState('search', true);
       clearMessages();
       
-      logger.info('Starting drama search test', {
+      console.info('Starting drama search test', {
         operation,
         query: searchKeyword
       });
 
-      defaultLogger.userAction('test_search_drama', {
+      console.info('test_search_drama', {
         query: searchKeyword,
         source: 'api_test_component',
         timestamp: new Date().toISOString()
@@ -337,7 +335,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         resultCount: results.length
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: true,
         query: searchKeyword,
         resultCount: results.length
@@ -351,7 +349,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         error: err.message
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: false,
         query: searchKeyword,
         error: err.message
@@ -370,9 +368,9 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
       setLoadingState('searchIndex', true);
       clearMessages();
       
-      logger.info('Starting drama index search test', { operation });
+      console.info('Starting drama index search test', { operation });
 
-      defaultLogger.userAction('test_search_drama_index', {
+      console.info('test_search_drama_index', {
         source: 'api_test_component',
         timestamp: new Date().toISOString()
       });
@@ -386,7 +384,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         resultCount: results.length
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: true,
         resultCount: results.length
       });
@@ -398,7 +396,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         error: err.message
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: false,
         error: err.message
       });
@@ -416,12 +414,12 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
       setLoadingState('detail', true);
       clearMessages();
       
-      logger.info('Starting drama detail load', {
+      console.info('Starting drama detail load', {
         operation,
         bookId
       });
 
-      defaultLogger.userAction('load_drama_detail', {
+      console.info('load_drama_detail', {
         bookId,
         source: 'api_test_component',
         timestamp: new Date().toISOString()
@@ -444,7 +442,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         chapterCount: chapterList.length
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: true,
         bookId,
         chapterCount: chapterList.length
@@ -458,7 +456,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
         error: err.message
       });
 
-      defaultLogger.performance(operation, duration, {
+      console.info(operation, duration, {
         success: false,
         bookId,
         error: err.message
@@ -471,13 +469,13 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
 
   // Tab change logging
   const handleTabChange = (newTab: string) => {
-    logger.info('Tab changed', {
+    console.info('Tab changed', {
       from: activeTab,
       to: newTab,
       timestamp: new Date().toISOString()
     });
 
-    defaultLogger.userAction('tab_change', {
+    console.info('tab_change', {
       from: activeTab,
       to: newTab,
       component: 'api_test',
@@ -491,7 +489,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
   const handleSearchKeywordChange = (keyword: string) => {
     setSearchKeyword(keyword);
     
-    logger.debug('Search keyword changed', {
+    console.debug('Search keyword changed', {
       keyword,
       length: keyword.length
     });
@@ -681,7 +679,7 @@ export default function ApiTestWithLogging({ title = "DramaBox API Test Suite (W
                     <p className="text-xs text-gray-600 mb-2">Views: {result.inLibraryCount || 'N/A'}</p>
                     <Button 
                       onClick={() => {
-                        logger.info('Drama details requested', {
+                        console.info('Drama details requested', {
                           bookId: result.bookId,
                           bookName: result.bookName,
                           source: 'search_results'

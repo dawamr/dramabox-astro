@@ -1,10 +1,8 @@
 import { apiRequest } from "./client.ts";
 import type { Chapter } from "../types/api.js";
-import defaultLogger from "../utils/logger.ts";
 import defaultApiLogger from "../utils/apiLogger.ts";
 
-// Create a logger for this module
-const logger = defaultLogger.child('DramaBoxHelper');
+// Logging is handled by defaultApiLogger
 
 
 interface ChapterResponse {
@@ -36,30 +34,18 @@ export const getChapters = async (bookId: string, log: boolean = true, startInde
     bookId
   });
 
-  logger.debug(`✅ Chapters loaded for book ${bookId} (Index: ${startIndex})`, {
-      boundaryIndex: 0,
-      comingPlaySectionId: -1,
-      index: startIndex,
-      currencyPlaySource: "discover_new_rec_new",
-      needEndRecommend: 0,
-      currencyPlaySourceName: "",
-      preLoad: false,
-      rid: "",
-      pullCid: "",
-      loadDirection: 0,
-      startUpKey: "",
-      bookId
-    }
-  );
-
-  const chapters = data?.data?.chapterList || [];
-  logger.info(`✅ Chapters loaded for book ${bookId} (Index: ${startIndex})`, {
-    chaptersCount: chapters.length,
+  console.debug(`✅ Chapters loaded for book ${bookId} (Index: ${startIndex})`, {
+    chaptersCount: (data?.data?.chapterList || []).length,
     bookId,
-    chapters,
     startIndex
   });
 
+  const chapters = data?.data?.chapterList || [];
+  console.info(`🔍 getChapters called for book ${bookId} (Index: ${startIndex})`, {
+    chaptersCount: chapters.length,
+    bookId,
+    startIndex
+  });
   if (log) {
     console.log(`\n=== 🎬 CHAPTER UNTUK BOOK ${bookId} (Index: ${startIndex}) ===`);
     chapters.forEach((ch, i) => {
@@ -94,10 +80,9 @@ export const getAllChapters = async (bookId: string, totalEpisodes: number, log:
       // Calculate the correct startIndex: 1, 7, 13, 19, 25, ...
       const startIndex = 1 + (page - 1) * 6;
       const chapters = await getChapters(bookId, false, startIndex);
-      logger.debug(`✅ Chapters loaded for book ${bookId} (Index: ${startIndex})`, {
+      console.debug(`✅ Chapters loaded for book ${bookId} (Index: ${startIndex})`, {
         chaptersCount: chapters.length,
         bookId,
-        chapters,
         startIndex
       });
       

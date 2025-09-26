@@ -2,7 +2,25 @@
  * Logging Configuration for DramaBox API
  */
 
-import { LogLevel, type LoggerConfig } from '../utils/logger.js';
+// Simple log levels since logger.ts is deprecated
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
+  FATAL = 4
+}
+
+export interface LoggerConfig {
+  logLevel: LogLevel;
+  enableFileLogging: boolean;
+  enableConsoleLogging: boolean;
+  logDirectory: string;
+  maxLogFiles: number;
+  maxFileSize: number; // in MB
+  dateFormat: string;
+  includeStackTrace: boolean;
+}
 
 export interface AppLoggingConfig {
   development: LoggerConfig;

@@ -2,8 +2,44 @@
  * API-specific logging utilities for DramaBox API
  */
 
-import defaultLogger, { Logger } from './logger.js';
 import { apiLoggingSettings } from '../config/logging.js';
+
+// Simple console-based logger since logger.ts is deprecated
+class SimpleLogger {
+  debug(message: string, data?: any, source?: string, requestId?: string, userId?: string): void {
+    console.debug(`[DEBUG] ${message}`, data);
+  }
+
+  info(message: string, data?: any, source?: string, requestId?: string, userId?: string): void {
+    console.info(`[INFO] ${message}`, data);
+  }
+
+  warn(message: string, data?: any, source?: string, requestId?: string, userId?: string): void {
+    console.warn(`[WARN] ${message}`, data);
+  }
+
+  error(message: string, data?: any, source?: string, requestId?: string, userId?: string): void {
+    console.error(`[ERROR] ${message}`, data);
+  }
+
+  apiRequest(method: string, url: string, requestData?: any, requestId?: string): void {
+    console.info(`[API REQUEST] ${method} ${url}`, { requestData, requestId });
+  }
+
+  apiResponse(method: string, url: string, status: number, responseData?: any, requestId?: string, duration?: number): void {
+    console.info(`[API RESPONSE] ${method} ${url} - ${status}`, { responseData, requestId, duration });
+  }
+
+  apiError(method: string, url: string, error: any, requestId?: string): void {
+    console.error(`[API ERROR] ${method} ${url}`, { error, requestId });
+  }
+
+  performance(operation: string, duration: number, details?: any): void {
+    console.info(`[PERFORMANCE] ${operation} took ${duration}ms`, details);
+  }
+}
+
+const defaultLogger = new SimpleLogger();
 
 export interface ApiLogContext {
   requestId: string;
@@ -30,10 +66,10 @@ export interface ApiResponseLog extends ApiLogContext {
 }
 
 class ApiLogger {
-  private logger: Logger;
+  private logger: SimpleLogger;
   private activeRequests: Map<string, ApiLogContext> = new Map();
 
-  constructor(logger: Logger = defaultLogger) {
+  constructor(logger: SimpleLogger = defaultLogger) {
     this.logger = logger;
   }
 
@@ -370,15 +406,8 @@ class EndpointLogger {
 // Create and export default API logger
 const defaultApiLogger = new ApiLogger(defaultLogger);
 
-// Set up periodic cleanup
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const cleaned = defaultApiLogger.cleanupStaleRequests();
-    if (cleaned > 0) {
-      defaultLogger.info(`Cleaned up ${cleaned} stale API requests`);
-    }
-  }, 60000); // Run every minute
-}
+// Note: Periodic cleanup removed due to Cloudflare Workers restrictions
+// Auto-cleanup can be implemented in request handlers if needed
 
 export default defaultApiLogger;
-export { ApiLogger, EndpointLogger };
+export { ApiLogger, EndpointLogger, SimpleLogger };
