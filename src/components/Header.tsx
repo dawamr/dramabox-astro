@@ -33,7 +33,7 @@ export default function Header({ searchQuery, onSearchChange, onSearchResults }:
               <span className="text-white text-xs font-bold">S</span>
             </div>
           </div>
-          <h1 className="text-xl font-bold text-white">ShortFlix</h1>
+          <h1 className="text-xl font-bold text-white">DBOX Studio</h1>
         </div>
         
         <div className="flex items-center space-x-3">
